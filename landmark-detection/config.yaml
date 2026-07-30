@@ -1,0 +1,92 @@
+# ============================================================
+# Project configuration (YAML).
+# All hyper-parameters and path settings live here so that the
+# source code stays free of hard-coded magic numbers.
+# ============================================================
+
+# ---- General -------------------------------------------------
+seed: 42
+project_name: "Google Landmark Detection"
+description: "VGG19 transfer learning for landmark recognition"
+
+# ---- Paths (relative to project root) ------------------------
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  train_dir: "data/train"
+  val_dir: "data/val"
+  test_dir: "data/test"
+  models: "models"
+  checkpoints: "checkpoints"
+  outputs: "outputs"
+  figures: "outputs/figures"
+  plots: "outputs/plots"
+  logs: "logs"
+  train_csv: "data/raw/train.csv"
+  encoder_file: "models/label_encoder.joblib"
+
+# ---- Image / preprocessing -----------------------------------
+image:
+  height: 224
+  width: 224
+  channels: 3
+  # VGG19 ImageNet mean for per-channel normalisation
+  mean: [103.939, 116.779, 123.68]   # BGR order (OpenCV native)
+  normalize_mode: "tf"               # "tf" | "caffe" | "scale"
+  interpolation: "bilinear"          # bilinear | nearest | area | lanczos
+
+# ---- Dataset -------------------------------------------------
+dataset:
+  # When the full Google-Landmarks-v2 set is too large, keep only
+  # the top-N most frequent landmark classes.
+  top_k_classes: 50
+  min_samples_per_class: 40
+  max_samples_per_class: 500        # cap to fight imbalance
+  val_split: 0.15
+  test_split: 0.10
+  shuffle_buffer: 2000
+
+# ---- Training ------------------------------------------------
+training:
+  batch_size: 32
+  epochs_phase1: 15                  # frozen backbone
+  epochs_phase2: 10                  # fine-tuning
+  phase1_lr: 0.001                   # 1e-3 Adam default
+  phase2_lr: 0.0001                  # 1e-4 for fine-tuning
+  optimizer: "adam"                 # adam | sgd
+  sgd_momentum: 0.9
+  sgd_nesterov: true
+  early_stopping_patience: 5
+  reduce_lr_patience: 3
+  reduce_lr_factor: 0.5
+  min_lr: 0.00001
+  mixed_precision: false            # set true on modern GPUs
+  fine_tune_layers: 4               # unfreeze last N VGG19 layers
+  cache_dataset: true
+  prefetch_buffer: "AUTOTUNE"
+
+# ---- Model ---------------------------------------------------
+model:
+  backbone: "vgg19"
+  weights: "imagenet"
+  include_top: false
+  dropout: 0.5
+  dense_units: 1024
+  use_batchnorm: true
+  use_global_avg_pool: true         # GAP2D vs Flatten
+  label_smoothing: 0.1
+
+# ---- Augmentation -------------------------------------------
+augmentation:
+  enabled: true
+  random_flip: "horizontal"
+  random_rotation: 20                # degrees
+  random_zoom: 0.2
+  random_width_shift: 0.2
+  random_height_shift: 0.2
+  random_brightness: 0.2
+  random_contrast: 0.2
+
+# ---- Evaluation ---------------------------------------------
+evaluation:
+  top_k: 5
